@@ -9,6 +9,9 @@
  * 
  */
 
+#include <SPI.h>
+#include <Ethernet.h>
+
 // resistance at 25 degrees C
 #define THERMISTORNOMINAL 10000
 // temp. for nominal resistance (almost always 25 C)
@@ -38,15 +41,56 @@
 float fahrenheit;
 
 
+// BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
+#define I2C_ADDRESS 0x50
+#include <Wire.h>
+
+static uint8_t mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+// END get MAC address from Microchip 24AA125E48 I2C ROM
+
+
+EthernetServer server(80);
+
 void setup() {
+  Serial.begin(19200);
+  
+  Serial.println();
+  Serial.println("Initializing HydronicFurnace written for Mega2650 based Freetronics EtherMega.");
+  Serial.println();
+  
+  delay( 50 );
+  
+  Wire.begin();
+  mac[0] = readRegister(0xFA);
+  mac[1] = readRegister(0xFB);
+  mac[2] = readRegister(0xFC);
+  mac[3] = readRegister(0xFD);
+  mac[4] = readRegister(0xFE);
+  mac[5] = readRegister(0xFF);
+  
+  Ethernet.begin(mac);
+  
+  Serial.print("Ethernet MAC: ");
+  byte macBuffer[6];  // create a buffer to hold the MAC address
+  Ethernet.MACAddress(macBuffer); // fill the buffer
+  for (byte octet = 0; octet < 6; octet++) {
+    Serial.print(macBuffer[octet], HEX);
+    if (octet < 5) {
+      Serial.print('-');
+    }
+  }
+  Serial.println();
+  
+  Serial.print("Ethernet IP: ");
+  Serial.println(Ethernet.localIP());
+  Serial.println();
+  
   pinMode(HYDPUMP_PIN , OUTPUT);
   pinMode(COIL1_PIN   , OUTPUT);
   pinMode(COIL2_PIN   , OUTPUT);
   
   pinMode(COIL_THERMO_PIN  , INPUT);
   pinMode(ZONE1_DEMAND_PIN , INPUT);
-  
-  Serial.begin(19200);
 }
 
 void loop() {
@@ -149,30 +193,48 @@ void event(char message[]) {
 }
 
 void stats() {
-  Serial.print("[");
+  String statsJSON = getStatsJSON();
   
-  Serial.print("{\"name\":\"ElectricCoilTemp\",\"value\":\"");
-  Serial.print(fahrenheit);
-  Serial.print("\"}");
-
-  Serial.print(",{\"name\":\"Zone1DemandStatus\",\"value\":");
-  Serial.print(digitalRead(ZONE1_DEMAND_PIN));
-  Serial.print("}");
-
-  Serial.print(",{\"name\":\"HydronicPumpStatus\",\"value\":");
-  Serial.print(digitalRead(HYDPUMP_PIN));
-  Serial.print("}");
-
-
-  Serial.print(",{\"name\":\"ElectricCoil1Status\",\"value\":");
-  Serial.print(digitalRead(COIL1_PIN));
-  Serial.print("}");
-
-  Serial.print(",{\"name\":\"ElectricCoil2Status\",\"value\":");
-  Serial.print(digitalRead(COIL2_PIN));
-  Serial.print("}");
+  Serial.println(statsJSON);
   
-  Serial.println("]");
+  EthernetClient client = server.available();
+  if(client) {
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println();
+    client.println(statsJSON);
+    
+    client.stop();
+  }
+}
+
+String getStatsJSON() {
+  String statsJSON ="[";
+  
+  statsJSON += "{\"name\":\"ElectricCoilTemp\",\"value\":\"";
+  statsJSON += fahrenheit;
+  statsJSON += "\"}";
+
+  statsJSON += ",{\"name\":\"Zone1DemandStatus\",\"value\":";
+  statsJSON += digitalRead(ZONE1_DEMAND_PIN);
+  statsJSON += "}";
+
+  statsJSON += ",{\"name\":\"HydronicPumpStatus\",\"value\":";
+  statsJSON += digitalRead(HYDPUMP_PIN);
+  statsJSON += "}";
+
+
+  statsJSON += ",{\"name\":\"ElectricCoil1Status\",\"value\":";
+  statsJSON += digitalRead(COIL1_PIN);
+  statsJSON += "}";
+
+  statsJSON += ",{\"name\":\"ElectricCoil2Status\",\"value\":";
+  statsJSON += digitalRead(COIL2_PIN);
+  statsJSON += "}";
+ 
+  statsJSON += "]";
+
+  return(statsJSON);
 }
 
 float getTemperature(int pin) {
@@ -211,3 +273,20 @@ float getTemperature(int pin) {
 float celsius2fahrenheit(float celsius) {
   return celsius * 9/5 + 32;
 }
+
+byte readRegister(byte r)
+{
+  unsigned char v;
+  Wire.beginTransmission(I2C_ADDRESS);
+  Wire.write(r);  // Register to read
+  Wire.endTransmission();
+
+  Wire.requestFrom(I2C_ADDRESS, 1); // Read a byte
+  while(!Wire.available())
+  {
+    // Wait
+  }
+  v = Wire.read();
+  return v;
+}
+
