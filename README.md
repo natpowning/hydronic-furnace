@@ -14,5 +14,5 @@ shut down.
 ### S/V Junovia
 
 Hydronic Loop
-![S/V Junovia Hydronic Loop Diagram]()https://raw.githubusercontent.com/natpowning/hydronic-furnace/master/Hardware/Junovia/HydronicLoop.png)
+![S/V Junovia Hydronic Loop Diagram](https://raw.githubusercontent.com/natpowning/hydronic-furnace/master/Hardware/Junovia/HydronicLoop.png)
 
