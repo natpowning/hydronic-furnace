@@ -26,9 +26,10 @@
 
 #define COIL_THERMO_PIN    8  // 10ktherm & 10k resistor as divider.
 #define ZONE1_DEMAND_PIN  46  // Digital from thermostat
-#define HYDPUMP_PIN        5
-#define COIL1_PIN          6
-#define COIL2_PIN          7
+
+#define HYDPUMP_PIN        5  // Hydronic Loop Circulation Pump Control
+#define COIL1_PIN          6  // Electric Heat Coil #1 Control
+#define COIL2_PIN          7  // Electric Heat Coil #2 Control (disabled)
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
@@ -38,7 +39,11 @@
 #define COIL2_TEMP_LOW   160.0    // Electric heat Coil 2 on
 #define COIL2_TEMP_HIGH  180.0    // Electric heat Coil 2 off
 
+#define COOLDOWN_PERIOD  60000   // Keep pump running 1 minute after demand stops
+
 float fahrenheit;
+
+bool electricHeatEnable = 1;
 
 
 // BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
@@ -55,10 +60,11 @@ void setup() {
   Serial.begin(19200);
   
   Serial.println();
-  Serial.println("Initializing HydronicFurnace written for Mega2650 based Freetronics EtherMega.");
+  Serial.println("Initializing HydronicFurnace for Mega2650 based Freetronics EtherMega.");
+  Serial.println("Version: 2");
   Serial.println();
   
-  delay( 50 );
+  delay( 1 );
   
   Wire.begin();
   mac[0] = readRegister(0xFA);
@@ -103,9 +109,11 @@ void loop() {
   } else {
     hydronicPump(0);
   }
-  
+
   if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
-    electricHeat(1);
+    if(electricHeatEnable) { 
+      electricHeat(1);
+    }
   } else {
     electricHeat(0);
   }
@@ -123,12 +131,16 @@ void hydronicPump(boolean toggle) {
     }
   } else {
 	  // Do not shut off pump if any non-passive heating sources are active (electric/diesel boiler)
-    if(digitalRead(HYDPUMP_PIN) == 1 && digitalRead(COIL1_PIN) == 0 && digitalRead(COIL2_PIN) == 0) {
+    if(digitalRead(HYDPUMP_PIN) == 1 && digitalRead(COIL1_PIN) == 0 && digitalRead(COIL2_PIN) == 0 && digitalRead(DIESEL_PIN) == 0) {
+      event("HydronicCoolDown");
+      delay(COOLDOWN_PERIOD);
+
       event("HydronicPumpStatus=0");
       digitalWrite(HYDPUMP_PIN, 0);
     }
   }
 }
+
 
 void electricHeat(boolean toggle) {
   int statusCoil1 = digitalRead(COIL1_PIN);
@@ -156,7 +168,7 @@ void electricHeat(boolean toggle) {
 
   if(statusCoil1 == 1 || statusCoil2 == 1) {
     hydronicPump(1);
-    delay(1000);
+    delay(5000);
   }
 
   if(statusCoil1 == 1) {
@@ -230,6 +242,10 @@ String getStatsJSON() {
 
   statsJSON += ",{\"name\":\"ElectricCoil2Status\",\"value\":";
   statsJSON += digitalRead(COIL2_PIN);
+  statsJSON += "}";
+
+  statsJSON += ",{\"name\":\"DieselStatus\",\"value\":";
+  statsJSON += digitalRead(DIESEL_PIN);
   statsJSON += "}";
  
   statsJSON += "]";
