@@ -130,8 +130,8 @@ void hydronicPump(boolean toggle) {
       digitalWrite(HYDPUMP_PIN, 1);
     }
   } else {
-	  // Do not shut off pump if any non-passive heating sources are active (electric/diesel boiler)
-    if(digitalRead(HYDPUMP_PIN) == 1 && digitalRead(COIL1_PIN) == 0 && digitalRead(COIL2_PIN) == 0 && digitalRead(DIESEL_PIN) == 0) {
+	  // Do not shut off pump if any non-passive heating sources are active
+    if(digitalRead(HYDPUMP_PIN) == 1 && digitalRead(COIL1_PIN) == 0 && digitalRead(COIL2_PIN) == 0) {
       event("HydronicCoolDown");
       delay(COOLDOWN_PERIOD);
 
@@ -242,10 +242,6 @@ String getStatsJSON() {
 
   statsJSON += ",{\"name\":\"ElectricCoil2Status\",\"value\":";
   statsJSON += digitalRead(COIL2_PIN);
-  statsJSON += "}";
-
-  statsJSON += ",{\"name\":\"DieselStatus\",\"value\":";
-  statsJSON += digitalRead(DIESEL_PIN);
   statsJSON += "}";
  
   statsJSON += "]";
