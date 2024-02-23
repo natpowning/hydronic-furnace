@@ -64,7 +64,7 @@ void setup() {
   Serial.println("Version: 2");
   Serial.println();
   
-  delay( 1 );
+  delay( 50 );
   
   Wire.begin();
   mac[0] = readRegister(0xFA);
