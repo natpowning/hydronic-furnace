@@ -223,24 +223,23 @@ void stats() {
 String getStatsJSON() {
   String statsJSON ="[";
   
-  statsJSON += "{\"name\":\"ElectricCoilTemp\",\"value\":\"";
+  statsJSON += "{\"electric_coil_temp\":\"";
   statsJSON += fahrenheit;
   statsJSON += "\"}";
 
-  statsJSON += ",{\"name\":\"Zone1DemandStatus\",\"value\":";
+  statsJSON += ",{\"zone1_demand_status\":";
   statsJSON += digitalRead(ZONE1_DEMAND_PIN);
   statsJSON += "}";
 
-  statsJSON += ",{\"name\":\"HydronicPumpStatus\",\"value\":";
+  statsJSON += ",{\"hydronic_pump_status\":";
   statsJSON += digitalRead(HYDPUMP_PIN);
   statsJSON += "}";
 
-
-  statsJSON += ",{\"name\":\"ElectricCoil1Status\",\"value\":";
+  statsJSON += ",{\"electric_coil1_status\":";
   statsJSON += digitalRead(COIL1_PIN);
   statsJSON += "}";
 
-  statsJSON += ",{\"name\":\"ElectricCoil2Status\",\"value\":";
+  statsJSON += ",{\"electric_coil2_status\":";
   statsJSON += digitalRead(COIL2_PIN);
   statsJSON += "}";
  
