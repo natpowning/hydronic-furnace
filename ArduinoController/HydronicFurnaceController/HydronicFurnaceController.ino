@@ -197,11 +197,9 @@ void electricHeat(boolean toggle) {
 }
 
 void event(char message[]) {
-  Serial.print("[");
-
   Serial.print("{\"name\":\"Event\",\"");
   Serial.print(message);
-  Serial.println("\"}]");
+  Serial.println("\"}");
 }
 
 void stats() {
@@ -220,10 +218,8 @@ void stats() {
   }
 }
 
-String getStatsJSON() {
-  String statsJSON ="[";
-  
-  statsJSON += "{\"electric_coil_temp\":\"";
+String getStatsJSON() {  
+  String statsJSON = "{\"electric_coil_temp\":\"";
   statsJSON += fahrenheit;
   statsJSON += "\"}";
 
@@ -243,8 +239,6 @@ String getStatsJSON() {
   statsJSON += digitalRead(COIL2_PIN);
   statsJSON += "}";
  
-  statsJSON += "]";
-
   return(statsJSON);
 }
 
