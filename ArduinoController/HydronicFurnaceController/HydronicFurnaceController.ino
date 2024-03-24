@@ -33,18 +33,19 @@
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
-#define COIL1_TEMP_LOW   170.0    // Electric heat coil 1 on
-#define COIL1_TEMP_HIGH  185.0    // Electric heat coil 1 off
+#define COIL1_TEMP_LOW   150.0    // Electric heat coil 1 on
+#define COIL1_TEMP_HIGH  165.0    // Electric heat coil 1 off
 
-#define COIL2_TEMP_LOW   160.0    // Electric heat Coil 2 on
-#define COIL2_TEMP_HIGH  180.0    // Electric heat Coil 2 off
+#define COIL2_TEMP_LOW   150.0    // Electric heat Coil 2 on
+#define COIL2_TEMP_HIGH  175.0    // Electric heat Coil 2 off
 
-#define COOLDOWN_PERIOD  60000   // Keep pump running 1 minute after demand stops
+#define COOLDOWN_PERIOD  20000   // Keep pump running 1 minute after demand stops
+
+int iteration = 0;
 
 float fahrenheit;
 
 bool electricHeatEnable = 1;
-
 
 // BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
 #define I2C_ADDRESS 0x50
@@ -121,6 +122,8 @@ void loop() {
   stats();
 
   delay(500);
+
+  iteration++;
 }
 
 void hydronicPump(boolean toggle) {
@@ -219,24 +222,26 @@ void stats() {
 }
 
 String getStatsJSON() {  
-  String statsJSON = "{\"electric_coil_temp\":\"";
+  String statsJSON = "{";
+
+  statsJSON += "\"iteration\":";
+  statsJSON += iteration;
+
+  statsJSON += ",\"electric_coil_temp\":";
   statsJSON += fahrenheit;
-  statsJSON += "\"}";
 
-  statsJSON += ",{\"zone1_demand_status\":";
+  statsJSON += ",\"zone1_demand_status\":";
   statsJSON += digitalRead(ZONE1_DEMAND_PIN);
-  statsJSON += "}";
 
-  statsJSON += ",{\"hydronic_pump_status\":";
+  statsJSON += ",\"hydronic_pump_status\":";
   statsJSON += digitalRead(HYDPUMP_PIN);
-  statsJSON += "}";
 
-  statsJSON += ",{\"electric_coil1_status\":";
+  statsJSON += ",\"electric_coil1_status\":";
   statsJSON += digitalRead(COIL1_PIN);
-  statsJSON += "}";
 
-  statsJSON += ",{\"electric_coil2_status\":";
+  statsJSON += ",\"electric_coil2_status\":";
   statsJSON += digitalRead(COIL2_PIN);
+
   statsJSON += "}";
  
   return(statsJSON);
