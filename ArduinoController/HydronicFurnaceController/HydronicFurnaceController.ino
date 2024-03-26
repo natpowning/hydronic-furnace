@@ -57,6 +57,9 @@ static uint8_t mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 EthernetServer server(80);
 
+// Prometheus Scrape Endpoint
+EthernetServer promServer(9100);
+
 void setup() {
   Serial.begin(19200);
   
@@ -219,7 +222,42 @@ void stats() {
     
     client.stop();
   }
+
+  // Prometheus scrape endpoint
+  EthernetClient promClient = promServer.available();
+  if(promClient) {
+    Serial.println("prom client");
+
+    promClient.println("HTTP/1.1 200 OK");
+    promClient.println("Content-Type: text/plain");
+    promClient.println();
+
+    promClient.print("# TYPE node_uname_info gauge\n");
+    promClient.print("node_uname_info{nodename=\"furnace\",sysname=\"Arduino\"} 1\n");
+
+    promClient.print("# TYPE node_furnace_coil_state gauge\n");
+    promClient.print("node_furnace_coil_state{nodename=\"furnace\", coil=\"1\"} ");
+    promClient.print(digitalRead(COIL1_PIN));
+    promClient.print("\n");
+    promClient.print("node_furnace_coil_state{nodename=\"furnace\", coil=\"2\"} ");
+    promClient.print(digitalRead(COIL1_PIN));
+    promClient.print("\n");
+
+    promClient.print("# TYPE node_furnace_demand gauge\n");
+    promClient.print("node_furnace_demand{nodename=\"furnace\", zone=\"1\"} ");
+    promClient.print(digitalRead(ZONE1_DEMAND_PIN));
+    promClient.print("\n");
+
+    promClient.print("# TYPE node_furnace_coil_temp gauge");
+    promClient.print("\n");
+    promClient.print("node_furnace_coil_temp{nodename=\"furnace\"} ");
+    promClient.print(fahrenheit);
+    promClient.print("\n");
+
+    promClient.stop();
+  }
 }
+
 
 String getStatsJSON() {  
   String statsJSON = "{";
@@ -246,6 +284,7 @@ String getStatsJSON() {
  
   return(statsJSON);
 }
+
 
 float getTemperature(int pin) {
   uint8_t i;
