@@ -254,6 +254,12 @@ void stats() {
     promClient.print(fahrenheit);
     promClient.print("\n");
 
+    promClient.print("# TYPE node_furnace_hydronic_pump gauge");
+    promClient.print("\n");
+    promClient.print("node_furnace_hydronic_pump{nodename=\"furnace\"} ");
+    promClient.print(digitalRead(HYDPUMP_PIN));
+    promClient.print("\n");
+
     promClient.stop();
   }
 }
