@@ -33,11 +33,11 @@
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
-#define COIL1_TEMP_LOW   150.0    // Electric heat coil 1 on
-#define COIL1_TEMP_HIGH  165.0    // Electric heat coil 1 off
+#define COIL1_TEMP_LOW   140.0    // Electric heat coil 1 on
+#define COIL1_TEMP_HIGH  160.0    // Electric heat coil 1 off
 
 #define COIL2_TEMP_LOW   150.0    // Electric heat Coil 2 on
-#define COIL2_TEMP_HIGH  175.0    // Electric heat Coil 2 off
+#define COIL2_TEMP_HIGH  170.0    // Electric heat Coil 2 off
 
 #define COOLDOWN_PERIOD  20000   // Keep pump running 1 minute after demand stops
 
@@ -131,17 +131,12 @@ void loop() {
 
 void hydronicPump(boolean toggle) {
   if(toggle) {
-    if(digitalRead(HYDPUMP_PIN) == 0) {
-      event("HydronicPumpStatus=1");
-      digitalWrite(HYDPUMP_PIN, 1);
-    }
+    digitalWrite(HYDPUMP_PIN, 1);
   } else {
 	  // Do not shut off pump if any non-passive heating sources are active
     if(digitalRead(HYDPUMP_PIN) == 1 && digitalRead(COIL1_PIN) == 0 && digitalRead(COIL2_PIN) == 0) {
-      event("HydronicCoolDown");
       delay(COOLDOWN_PERIOD);
 
-      event("HydronicPumpStatus=0");
       digitalWrite(HYDPUMP_PIN, 0);
     }
   }
@@ -164,48 +159,20 @@ void electricHeat(boolean toggle) {
     statusCoil2 = 0;
   }
 
-  if(fahrenheit < COIL1_TEMP_LOW && toggle) {
+  if(fahrenheit <= COIL1_TEMP_LOW && toggle) {
     statusCoil1 = 1;
   }
-  
-  if(fahrenheit < COIL2_TEMP_LOW && toggle) {
+
+  if(fahrenheit <= COIL2_TEMP_LOW && toggle) {
     statusCoil2 = 1;
   }
 
   if(statusCoil1 == 1 || statusCoil2 == 1) {
     hydronicPump(1);
-    delay(5000);
   }
 
-  if(statusCoil1 == 1) {
-    if(digitalRead(COIL1_PIN) != 1) {
-      event("ElectricCoil1Status=1");
-      digitalWrite(COIL1_PIN,statusCoil1);
-    }
-  } else {
-    if(digitalRead(COIL1_PIN) != 0) {
-      event("ElectricCoil1Status=0");
-      digitalWrite(COIL1_PIN,statusCoil1);
-    }
-  }
-
-  if(statusCoil2 == 1) {
-    if(digitalRead(COIL2_PIN) != 1) {
-      event("ElectricCoil2Status=1");
-      digitalWrite(COIL2_PIN,statusCoil2);
-    }
-  } else {
-    if(digitalRead(COIL2_PIN) != 0) {
-      event("ElectricCoil2Status=0");
-      digitalWrite(COIL2_PIN,statusCoil2);
-    }
-  }
-}
-
-void event(char message[]) {
-  Serial.print("{\"name\":\"Event\",\"");
-  Serial.print(message);
-  Serial.println("\"}");
+  digitalWrite(COIL1_PIN,statusCoil1);
+  digitalWrite(COIL2_PIN,statusCoil2);
 }
 
 void stats() {
@@ -240,7 +207,7 @@ void stats() {
     promClient.print(digitalRead(COIL1_PIN));
     promClient.print("\n");
     promClient.print("node_furnace_coil_state{nodename=\"furnace\", coil=\"2\"} ");
-    promClient.print(digitalRead(COIL1_PIN));
+    promClient.print(digitalRead(COIL2_PIN));
     promClient.print("\n");
 
     promClient.print("# TYPE node_furnace_demand gauge\n");
@@ -344,4 +311,3 @@ byte readRegister(byte r)
   v = Wire.read();
   return v;
 }
-
