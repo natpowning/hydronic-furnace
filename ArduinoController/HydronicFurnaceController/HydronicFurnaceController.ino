@@ -34,7 +34,7 @@
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
 #define COIL1_TEMP_LOW   140.0    // Electric heat coil 1 on
-#define COIL1_TEMP_HIGH  160.0    // Electric heat coil 1 off
+#define COIL1_TEMP_HIGH  165.0    // Electric heat coil 1 off
 
 #define COIL2_TEMP_LOW   150.0    // Electric heat Coil 2 on
 #define COIL2_TEMP_HIGH  170.0    // Electric heat Coil 2 off
@@ -144,13 +144,15 @@ void hydronicPump(boolean toggle) {
 
 
 void electricHeat(boolean toggle) {
+  if( ! toggle) {
+    digitalWrite(COIL1_PIN,0);
+    digitalWrite(COIL2_PIN,0);
+
+    return;
+  }
+
   int statusCoil1 = digitalRead(COIL1_PIN);
   int statusCoil2 = digitalRead(COIL2_PIN);
-
-  if( ! toggle) {
-    statusCoil1 = 0;
-    statusCoil2 = 0;
-  }
 
   if(fahrenheit >= COIL1_TEMP_HIGH) {
     statusCoil1 = 0;
@@ -159,11 +161,11 @@ void electricHeat(boolean toggle) {
     statusCoil2 = 0;
   }
 
-  if(fahrenheit <= COIL1_TEMP_LOW && toggle) {
+  if(fahrenheit <= COIL1_TEMP_LOW) {
     statusCoil1 = 1;
   }
 
-  if(fahrenheit <= COIL2_TEMP_LOW && toggle) {
+  if(fahrenheit <= COIL2_TEMP_LOW) {
     statusCoil2 = 1;
   }
 
