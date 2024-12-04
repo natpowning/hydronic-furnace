@@ -10,6 +10,11 @@ Currently, one problem regularly occurs tracked with Issue #1 which requires the
 thermal safety switch on the electric heater must be reset when it overheats after
 shut down.
 
+## Building
+The Arduinojson library must be installed in the Arduino IDE by going to Sketch -> Manage Libraries and searching for arduinojson
+![image](https://github.com/user-attachments/assets/381a60a2-a3ef-41a9-998a-f792d16c0515)
+
+
 ## Mechanical Designs
 ### S/V Junovia
 
