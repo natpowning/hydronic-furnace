@@ -11,7 +11,6 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
-#include <Wire.h>
 #include <ArduinoJson.h>
 
 // Thermistor stuff
@@ -54,6 +53,7 @@ int electricHeatMode = 1;
 
 // BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
 #define I2C_ADDRESS 0x50
+#include <Wire.h>
 
 static uint8_t mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 // END get MAC address from Microchip 24AA125E48 I2C ROM
@@ -120,9 +120,7 @@ void loop() {
 
   if(true) {
   //if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
-    if(electricHeatMode > 0) { 
-      electricHeat(1);
-    }
+    electricHeat(electricHeatMode);
   } else {
     electricHeat(0);
   }
@@ -148,8 +146,8 @@ void hydronicPump(boolean toggle) {
 }
 
 
-void electricHeat(boolean toggle) {
-  if( ! toggle) {
+void electricHeat(int mode) {
+  if(mode < 1) {
     digitalWrite(COIL1_PIN,0);
     digitalWrite(COIL2_PIN,0);
 
@@ -162,15 +160,17 @@ void electricHeat(boolean toggle) {
   if(fahrenheit >= COIL1_TEMP_HIGH) {
     statusCoil1 = 0;
   }
-  if(fahrenheit >= COIL2_TEMP_HIGH || electricHeatMode == 1) {
-    statusCoil2 = 0;
+  if(fahrenheit >= COIL2_TEMP_HIGH) {
+    if(mode < 2) {
+      statusCoil2 = 0;
+    }
   }
 
   if(fahrenheit <= COIL1_TEMP_LOW) {
     statusCoil1 = 1;
   }
 
-  if(fahrenheit <= COIL2_TEMP_LOW && electricHeatMode == 2) {
+  if(fahrenheit <= COIL2_TEMP_LOW) {
     statusCoil2 = 1;
   }
 
