@@ -189,7 +189,7 @@ void stats() {
   
   EthernetClient client = server.available();
   if(client) {
-      String currentLine = "";
+    String currentLine = "";
     String requestBody = "";
     bool isBody = false;
 
@@ -290,6 +290,9 @@ String getStatsJSON() {
 
   statsJSON += ",\"electric_coil2_status\":";
   statsJSON += digitalRead(COIL2_PIN);
+
+  statsJSON += ",\"electric_heat_mode\":";
+  statsJSON += electricHeatMode;
 
   statsJSON += "}";
  
