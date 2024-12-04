@@ -11,7 +11,10 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
+#include <Wire.h>
+#include <ArduinoJson.h>
 
+// Thermistor stuff
 // resistance at 25 degrees C
 #define THERMISTORNOMINAL 10000
 // temp. for nominal resistance (almost always 25 C)
@@ -45,11 +48,12 @@ int iteration = 0;
 
 float fahrenheit;
 
-bool electricHeatEnable = 1;
+// 0 = off, 1 = single-coil, 2 = dual-coil
+int electricHeatMode = 1;
+
 
 // BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
 #define I2C_ADDRESS 0x50
-#include <Wire.h>
 
 static uint8_t mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 // END get MAC address from Microchip 24AA125E48 I2C ROM
@@ -116,7 +120,7 @@ void loop() {
 
   if(true) {
   //if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
-    if(electricHeatEnable) { 
+    if(electricHeatMode > 0) { 
       electricHeat(1);
     }
   } else {
@@ -158,7 +162,7 @@ void electricHeat(boolean toggle) {
   if(fahrenheit >= COIL1_TEMP_HIGH) {
     statusCoil1 = 0;
   }
-  if(fahrenheit >= COIL2_TEMP_HIGH) {
+  if(fahrenheit >= COIL2_TEMP_HIGH || electricHeatMode == 1) {
     statusCoil2 = 0;
   }
 
@@ -166,7 +170,7 @@ void electricHeat(boolean toggle) {
     statusCoil1 = 1;
   }
 
-  if(fahrenheit <= COIL2_TEMP_LOW) {
+  if(fahrenheit <= COIL2_TEMP_LOW && electricHeatMode == 2) {
     statusCoil2 = 1;
   }
 
@@ -185,6 +189,37 @@ void stats() {
   
   EthernetClient client = server.available();
   if(client) {
+      String currentLine = "";
+    String requestBody = "";
+    bool isBody = false;
+
+    while (client.connected()) {
+      if (client.available()) {
+        char c = client.read();
+        if (isBody) {
+          requestBody += c;
+        }
+        if (c == '\n' && currentLine.length() == 0) {
+          isBody = true;
+        } else if (c == '\n') {
+          currentLine = "";
+        } else if (c != '\r') {
+          currentLine += c;
+        }
+      }
+    }
+
+    // Parse JSON body
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, requestBody);
+
+    if (!error) {
+      if (doc.containsKey("electricHeatMode")) {
+        electricHeatMode = doc["electricHeatMode"];
+      }
+    }
+
+    // Send response
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
     client.println();
