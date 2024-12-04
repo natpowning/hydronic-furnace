@@ -29,7 +29,7 @@
 
 #define HYDPUMP_PIN        5  // Hydronic Loop Circulation Pump Control
 #define COIL1_PIN          6  // Electric Heat Coil #1 Control
-#define COIL2_PIN          7  // Electric Heat Coil #2 Control (disabled)
+#define COIL2_PIN          6  // Electric Heat Coil #2 Control (disabled) 7
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
@@ -114,7 +114,8 @@ void loop() {
     hydronicPump(0);
   }
 
-  if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
+  if(true) {
+  //if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
     if(electricHeatEnable) { 
       electricHeat(1);
     }
