@@ -11,7 +11,9 @@
 
 #include <SPI.h>
 #include <Ethernet.h>
+#include <ArduinoJson.h>
 
+// Thermistor stuff
 // resistance at 25 degrees C
 #define THERMISTORNOMINAL 10000
 // temp. for nominal resistance (almost always 25 C)
@@ -27,17 +29,18 @@
 #define COIL_THERMO_PIN    8  // 10ktherm & 10k resistor as divider.
 #define ZONE1_DEMAND_PIN  46  // Digital from thermostat
 
-#define HYDPUMP_PIN        5  // Hydronic Loop Circulation Pump Control
+#define HYDPUMP_PIN        4  // Hydronic Loop Circulation Pump Control
 #define COIL1_PIN          6  // Electric Heat Coil #1 Control
-#define COIL2_PIN          7  // Electric Heat Coil #2 Control (disabled)
+#define COIL2_PIN          7  // Electric Heat Coil #2 Control (disabled) 7
+#define DIESEL_PIN         5
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
 #define COIL1_TEMP_LOW   140.0    // Electric heat coil 1 on
-#define COIL1_TEMP_HIGH  165.0    // Electric heat coil 1 off
+#define COIL1_TEMP_HIGH  170.0    // Electric heat coil 1 off
 
 #define COIL2_TEMP_LOW   150.0    // Electric heat Coil 2 on
-#define COIL2_TEMP_HIGH  170.0    // Electric heat Coil 2 off
+#define COIL2_TEMP_HIGH  165.0    // Electric heat Coil 2 off
 
 #define COOLDOWN_PERIOD  20000   // Keep pump running 1 minute after demand stops
 
@@ -45,7 +48,12 @@ int iteration = 0;
 
 float fahrenheit;
 
-bool electricHeatEnable = 1;
+// 0 = off, 1 = single-coil, 2 = dual-coil
+int electricHeatMode = 1;
+
+// 0 = off, 1
+int dieselHeatMode = 0;
+
 
 // BEGIN get MAC address from Microchip 24AA125E48 I2C ROM
 #define I2C_ADDRESS 0x50
@@ -65,7 +73,7 @@ void setup() {
   
   Serial.println();
   Serial.println("Initializing HydronicFurnace for Mega2650 based Freetronics EtherMega.");
-  Serial.println("Version: 2");
+  Serial.println("Version: 3");
   Serial.println();
   
   delay( 50 );
@@ -114,12 +122,17 @@ void loop() {
     hydronicPump(0);
   }
 
-  if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
-    if(electricHeatEnable) { 
-      electricHeat(1);
-    }
+  if(true) {
+  //if(digitalRead(ZONE1_DEMAND_PIN) == 1) {
+    electricHeat(electricHeatMode);
   } else {
     electricHeat(0);
+  }
+
+  if(dieselHeatMode > 0) {
+    digitalWrite(DIESEL_PIN, 1);
+  } else {
+    digitalWrite(DIESEL_PIN, 1);
   }
 
   stats();
@@ -143,8 +156,8 @@ void hydronicPump(boolean toggle) {
 }
 
 
-void electricHeat(boolean toggle) {
-  if( ! toggle) {
+void electricHeat(int mode) {
+  if(mode < 1) {
     digitalWrite(COIL1_PIN,0);
     digitalWrite(COIL2_PIN,0);
 
@@ -155,9 +168,11 @@ void electricHeat(boolean toggle) {
   int statusCoil2 = digitalRead(COIL2_PIN);
 
   if(fahrenheit >= COIL1_TEMP_HIGH) {
+    Serial.println("Disabling coil 1");
     statusCoil1 = 0;
   }
-  if(fahrenheit >= COIL2_TEMP_HIGH) {
+  //if(fahrenheit >= COIL2_TEMP_HIGH) {
+  if(fahrenheit >= COIL2_TEMP_HIGH || mode < 2) {
     statusCoil2 = 0;
   }
 
@@ -165,7 +180,7 @@ void electricHeat(boolean toggle) {
     statusCoil1 = 1;
   }
 
-  if(fahrenheit <= COIL2_TEMP_LOW) {
+  if(fahrenheit <= COIL2_TEMP_LOW && mode > 1) {
     statusCoil2 = 1;
   }
 
@@ -184,6 +199,53 @@ void stats() {
   
   EthernetClient client = server.available();
   if(client) {
+    String currentLine = "";
+    String requestBody = "";
+    bool isBody = false;
+
+    int iters = 0;
+    while (client.connected()) {
+      if (client.available()) {
+        char c = client.read();
+        if (isBody) {
+          requestBody += c;
+        }
+        if (c == '\n' && currentLine.length() == 0) {
+          isBody = true;
+        } else if (c == '\n') {
+          currentLine = "";
+        } else if (c != '\r') {
+          currentLine += c;
+        }
+
+        // Check for the end of the HTTP request
+        if (isBody && requestBody.endsWith("}")) {
+          break;
+        }
+
+        Serial.println("character: " + String(c));
+      }
+
+      iters++;
+      if (iters > 1000) {
+        break;
+      }
+    }
+
+    // Parse JSON body
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, requestBody);
+
+    if (!error) {
+      if (doc.containsKey("electricHeatMode")) {
+        electricHeatMode = doc["electricHeatMode"];
+      }
+      if (doc.containsKey("dieselHeatMode")) {
+        dieselHeatMode = doc["dieselHeatMode"];
+      }
+    }
+
+    // Send response
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: application/json");
     client.println();
@@ -254,6 +316,17 @@ String getStatsJSON() {
 
   statsJSON += ",\"electric_coil2_status\":";
   statsJSON += digitalRead(COIL2_PIN);
+
+  digitalWrite(5, true);
+
+  statsJSON += ",\"diesel_status\":";
+  statsJSON += digitalRead(5);
+
+  statsJSON += ",\"electric_heat_mode\":";
+  statsJSON += electricHeatMode;
+
+  statsJSON += ",\"diesel_heat_mode\":";
+  statsJSON += dieselHeatMode;
 
   statsJSON += "}";
  
