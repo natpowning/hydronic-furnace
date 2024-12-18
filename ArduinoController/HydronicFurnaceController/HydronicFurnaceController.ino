@@ -29,10 +29,10 @@
 #define COIL_THERMO_PIN    8  // 10ktherm & 10k resistor as divider.
 #define ZONE1_DEMAND_PIN  46  // Digital from thermostat
 
-#define HYDPUMP_PIN        4  // Hydronic Loop Circulation Pump Control
+#define HYDPUMP_PIN        5  // Hydronic Loop Circulation Pump Control
 #define COIL1_PIN          6  // Electric Heat Coil #1 Control
 #define COIL2_PIN          7  // Electric Heat Coil #2 Control (disabled) 7
-#define DIESEL_PIN         5
+#define DIESEL_PIN         13 // Diesel Boiler Control (Webasto 2010 On Signal)
 
 #define HYDPUMP_TEMP_LOW 120.0    // Pump will keep running while above this
 
@@ -132,7 +132,7 @@ void loop() {
   if(dieselHeatMode > 0) {
     digitalWrite(DIESEL_PIN, 1);
   } else {
-    digitalWrite(DIESEL_PIN, 1);
+    digitalWrite(DIESEL_PIN, 0);
   }
 
   stats();
@@ -317,10 +317,8 @@ String getStatsJSON() {
   statsJSON += ",\"electric_coil2_status\":";
   statsJSON += digitalRead(COIL2_PIN);
 
-  digitalWrite(5, true);
-
   statsJSON += ",\"diesel_status\":";
-  statsJSON += digitalRead(5);
+  statsJSON += digitalRead(DIESEL_PIN);
 
   statsJSON += ",\"electric_heat_mode\":";
   statsJSON += electricHeatMode;
